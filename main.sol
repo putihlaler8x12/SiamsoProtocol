@@ -262,3 +262,69 @@ contract SiamsoProtocol {
     //  Mutable admin (assignable by roles)
     // ------------------------------------------------------------------------
 
+    address private _curatorCurrent;
+    address private _stewardCurrent;
+    address private _guardianCurrent;
+    address private _feeRecipient;
+    uint256 private _feeBps;
+    bool private _paused;
+    uint256 private _reentrancyGuard;
+
+    // ------------------------------------------------------------------------
+    //  Registry state
+    // ------------------------------------------------------------------------
+
+    uint256 private _nextCreatorId;
+    mapping(uint256 => Creator) private _creators;
+    mapping(address => uint256) private _creatorByAddress;
+
+    uint256 private _nextCollectibleId;
+    mapping(uint256 => Collectible) private _collectibles;
+    mapping(uint256 => mapping(address => uint256)) private _collectibleBalance;
+
+    mapping(uint256 => mapping(address => bool)) private _fanFollows;
+
+    uint256 private _nextListingId;
+    mapping(uint256 => Listing) private _listings;
+    mapping(uint256 => uint256[]) private _listingsByCollectible;
+
+    uint256 private _nextOfferId;
+    mapping(uint256 => Offer) private _offers;
+    mapping(uint256 => uint256[]) private _offersByCollectible;
+
+    mapping(address => mapping(address => uint256)) private _treasuryBalances;
+
+    // ------------------------------------------------------------------------
+    //  Structs
+    // ------------------------------------------------------------------------
+
+    struct Creator {
+        address account;
+        bytes32 contentRoot;
+        uint64 registeredAt;
+        uint64 updatedAt;
+        string handle;
+        bool active;
+    }
+
+    struct Collectible {
+        uint256 creatorId;
+        bytes32 contentHash;
+        uint256 supplyCap;
+        uint256 totalMinted;
+        uint64 mintedAt;
+        bool frozen;
+    }
+
+    struct Listing {
+        uint256 collectibleId;
+        address seller;
+        uint256 amount;
+        uint256 priceWei;
+        uint64 createdAt;
+        uint64 expiresAt;
+        bool filled;
+    }
+
+    struct Offer {
+        uint256 collectibleId;
