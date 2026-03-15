@@ -328,3 +328,69 @@ contract SiamsoProtocol {
 
     struct Offer {
         uint256 collectibleId;
+        address bidder;
+        uint256 amount;
+        uint256 priceWei;
+        uint64 createdAt;
+        uint64 expiresAt;
+        bool filled;
+    }
+
+    struct RoyaltyConfig {
+        address recipient;
+        uint256 bps;
+        bool set;
+    }
+
+    mapping(uint256 => RoyaltyConfig) private _collectibleRoyalty;
+    mapping(uint256 => mapping(address => bool)) private _collectibleAllowlist;
+    mapping(uint256 => bool) private _collectibleAllowlistEnabled;
+
+    // ------------------------------------------------------------------------
+    //  Constructor
+    // ------------------------------------------------------------------------
+
+    constructor() {
+        curator = 0x5F3aB7c9D1e4F6a8B0c2D4e6F8a0b2C4d6E8f0A2;
+        steward = 0x7C2e9A4b6D8f0c2E4a6B8d0F2a4C6e8A0b2D4f6A8;
+        guardian = 0x9E1b5F7a3C9d2E6f0A4b8c2D6e0F4a8B2c6D0e4F8;
+        feeRecipientInit = 0xB4d8F2a6C0e4A8b2D6f0c4E8a2B6d0F4c8E2a0B6d4;
+        _curatorCurrent = curator;
+        _stewardCurrent = steward;
+        _guardianCurrent = guardian;
+        _feeRecipient = feeRecipientInit;
+        _feeBps = 250;
+        _nextCreatorId = 1;
+        _nextCollectibleId = 1;
+        _nextListingId = 1;
+        _nextOfferId = 1;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Modifiers
+    // ------------------------------------------------------------------------
+
+    modifier onlyCurator() {
+        if (msg.sender != _curatorCurrent) revert SIAM_NotCurator();
+        _;
+    }
+
+    modifier onlySteward() {
+        if (msg.sender != _stewardCurrent) revert SIAM_NotSteward();
+        _;
+    }
+
+    modifier onlyGuardian() {
+        if (msg.sender != _guardianCurrent) revert SIAM_NotGuardian();
+        _;
+    }
+
+    modifier whenNotPaused() {
+        if (_paused) revert SIAM_ProtocolPaused();
+        _;
+    }
+
+    modifier nonReentrant() {
+        if (_reentrancyGuard == 1) revert SIAM_Reentrancy();
+        _reentrancyGuard = 1;
+        _;
