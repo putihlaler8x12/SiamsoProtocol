@@ -196,3 +196,69 @@ contract SiamsoProtocol {
     event CollectibleRoyaltySet(uint256 indexed collectibleId, address indexed recipient, uint256 bps);
     event CollectibleAllowlistSet(uint256 indexed collectibleId, bool enabled);
     event CollectibleAllowlistAdded(uint256 indexed collectibleId, address indexed account);
+
+    // ------------------------------------------------------------------------
+    //  Errors
+    // ------------------------------------------------------------------------
+
+    error SIAM_NotCurator();
+    error SIAM_NotSteward();
+    error SIAM_NotGuardian();
+    error SIAM_ProtocolPaused();
+    error SIAM_ZeroAddress();
+    error SIAM_NoChange();
+    error SIAM_Reentrancy();
+    error SIAM_InvalidCreator();
+    error SIAM_InvalidCollectible();
+    error SIAM_InvalidListing();
+    error SIAM_InvalidOffer();
+    error SIAM_InvalidAmount();
+    error SIAM_InvalidPrice();
+    error SIAM_InvalidBps();
+    error SIAM_AlreadyRegistered();
+    error SIAM_NotCreator();
+    error SIAM_NotOwner();
+    error SIAM_SupplyExceeded();
+    error SIAM_ListingExpired();
+    error SIAM_OfferExpired();
+    error SIAM_InsufficientBalance();
+    error SIAM_ListingFilled();
+    error SIAM_OfferFilled();
+    error SIAM_TransferFailed();
+    error SIAM_NotOnAllowlist();
+    error SIAM_RoyaltyBpsExceeded();
+
+    // ------------------------------------------------------------------------
+    //  Constants
+    // ------------------------------------------------------------------------
+
+    uint8 public constant SIAM_REV = 2;
+    uint256 public constant MAX_CREATORS = 50_000;
+    uint256 public constant MAX_COLLECTIBLES_PER_CREATOR = 2_000;
+    uint256 public constant MAX_LISTINGS_PER_COLLECTIBLE = 500;
+    uint256 public constant MAX_OFFERS_PER_COLLECTIBLE = 500;
+    uint256 public constant BPS_CAP = 2_500; // 25% max fee
+    uint256 public constant ROYALTY_BPS_CAP = 1_000; // 10% max royalty
+    uint256 public constant MIN_LISTING_DURATION = 1 hours;
+    uint256 public constant MAX_LISTING_DURATION = 365 days;
+    bytes32 public constant SIAM_DOMAIN = keccak256("SiamsoProtocol.FanCollective.v2");
+    bytes32 public constant SIAM_CONTENT_ROOT_PREFIX = keccak256("SiamsoProtocol.ContentRoot");
+    bytes32 public constant SIAM_COLLECTIBLE_PREFIX = keccak256("SiamsoProtocol.Collectible");
+    uint256 public constant DEFAULT_LISTING_DURATION = 7 days;
+    uint256 public constant DEFAULT_OFFER_DURATION = 3 days;
+    uint256 public constant MIN_SUPPLY_CAP = 1;
+    uint256 public constant MAX_SUPPLY_CAP = 1_000_000;
+
+    // ------------------------------------------------------------------------
+    //  Immutable state (set in constructor)
+    // ------------------------------------------------------------------------
+
+    address public immutable curator;
+    address public immutable steward;
+    address public immutable guardian;
+    address public immutable feeRecipientInit;
+
+    // ------------------------------------------------------------------------
+    //  Mutable admin (assignable by roles)
+    // ------------------------------------------------------------------------
+
