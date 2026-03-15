@@ -64,3 +64,69 @@ library SiamsoBytes {
         assembly {
             out := mload(add(add(b, 32), start))
         }
+    }
+    function slice(bytes memory b, uint256 start, uint256 len) internal pure returns (bytes memory) {
+        if (start + len > b.length) len = b.length > start ? b.length - start : 0;
+        bytes memory res = new bytes(len);
+        for (uint256 i; i < len; ) {
+            res[i] = b[start + i];
+            unchecked { ++i; }
+        }
+        return res;
+    }
+}
+
+library SiamsoMerkle {
+    function verifyProof(
+        bytes32 leaf,
+        bytes32 root,
+        bytes32[] calldata proof
+    ) internal pure returns (bool) {
+        bytes32 h = leaf;
+        for (uint256 i; i < proof.length; ) {
+            bytes32 p = proof[i];
+            h = h < p ? keccak256(abi.encodePacked(h, p)) : keccak256(abi.encodePacked(p, h));
+            unchecked { ++i; }
+        }
+        return h == root;
+    }
+    function leafForAddress(address account) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(account));
+    }
+    function leafForCreatorId(uint256 creatorId) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(creatorId));
+    }
+}
+
+library SiamsoSafeTransfer {
+    error SiamsoSafeTransfer_Failed();
+    function safeTransfer(IERC20 token, address to, uint256 amount) internal {
+        (bool ok, bytes memory data) = address(token).call(
+            abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
+        );
+        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert SiamsoSafeTransfer_Failed();
+    }
+    function safeTransferFrom(IERC20 token, address from, address to, uint256 amount) internal {
+        (bool ok, bytes memory data) = address(token).call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
+        );
+        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert SiamsoSafeTransfer_Failed();
+    }
+}
+
+// ============================================================================
+//  Main Contract
+// ============================================================================
+
+contract SiamsoProtocol {
+    using SiamsoMath for uint256;
+    using SiamsoSafeTransfer for IERC20;
+
+    // ------------------------------------------------------------------------
+    //  Events
+    // ------------------------------------------------------------------------
+
+    event CreatorRegistered(
+        uint256 indexed creatorId,
+        address indexed account,
+        bytes32 contentRoot,
