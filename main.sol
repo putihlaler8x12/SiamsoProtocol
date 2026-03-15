@@ -130,3 +130,69 @@ contract SiamsoProtocol {
         uint256 indexed creatorId,
         address indexed account,
         bytes32 contentRoot,
+        uint64 registeredAt,
+        string handle
+    );
+    event CreatorUpdated(
+        uint256 indexed creatorId,
+        bytes32 previousRoot,
+        bytes32 newContentRoot,
+        address indexed updater
+    );
+    event CollectibleMinted(
+        uint256 indexed creatorId,
+        uint256 indexed collectibleId,
+        address indexed owner,
+        bytes32 contentHash,
+        uint256 supplyCap,
+        uint64 mintedAt
+    );
+    event CollectibleTransfer(
+        uint256 indexed collectibleId,
+        address indexed from,
+        address indexed to,
+        uint256 amount
+    );
+    event FanFollowed(uint256 indexed creatorId, address indexed fan, uint64 followedAt);
+    event FanUnfollowed(uint256 indexed creatorId, address indexed fan, uint64 unfollowedAt);
+    event ListingCreated(
+        uint256 indexed listingId,
+        uint256 indexed collectibleId,
+        address indexed seller,
+        uint256 amount,
+        uint256 priceWei,
+        uint64 expiresAt
+    );
+    event ListingFilled(
+        uint256 indexed listingId,
+        address indexed buyer,
+        uint256 filledAmount,
+        uint256 totalWei
+    );
+    event ListingCancelled(uint256 indexed listingId, address indexed seller);
+    event OfferPlaced(
+        uint256 indexed offerId,
+        uint256 indexed collectibleId,
+        address indexed bidder,
+        uint256 amount,
+        uint256 priceWei,
+        uint64 expiresAt
+    );
+    event OfferAccepted(
+        uint256 indexed offerId,
+        address indexed seller,
+        uint256 acceptedAmount,
+        uint256 totalWei
+    );
+    event OfferCancelled(uint256 indexed offerId, address indexed bidder);
+    event ProtocolPaused(address indexed guardian);
+    event ProtocolUnpaused(address indexed curator);
+    event CuratorSet(address indexed previous, address indexed next);
+    event StewardSet(address indexed previous, address indexed next);
+    event GuardianSet(address indexed previous, address indexed next);
+    event FeeBpsUpdated(uint256 previousBps, uint256 newBps);
+    event FeeRecipientUpdated(address indexed previous, address indexed next);
+    event TreasuryWithdrawal(address indexed token, address indexed to, uint256 amount);
+    event CollectibleRoyaltySet(uint256 indexed collectibleId, address indexed recipient, uint256 bps);
+    event CollectibleAllowlistSet(uint256 indexed collectibleId, bool enabled);
+    event CollectibleAllowlistAdded(uint256 indexed collectibleId, address indexed account);
