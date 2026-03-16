@@ -988,3 +988,69 @@ contract SiamsoProtocol {
         if (end > n) end = n;
         uint256 len = end - offset_;
         offerIds = new uint256[](len);
+        bidders = new address[](len);
+        amounts = new uint256[](len);
+        pricesWei = new uint256[](len);
+        expiresAt = new uint64[](len);
+        filled = new bool[](len);
+        for (uint256 i; i < len; ) {
+            uint256 oid = ids[offset_ + i];
+            offerIds[i] = oid;
+            Offer storage o = _offers[oid];
+            bidders[i] = o.bidder;
+            amounts[i] = o.amount;
+            pricesWei[i] = o.priceWei;
+            expiresAt[i] = o.expiresAt;
+            filled[i] = o.filled;
+            unchecked { ++i; }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //  Batch view: creators
+    // ------------------------------------------------------------------------
+
+    function getCreatorsBatch(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory creatorIds,
+        address[] memory accounts,
+        bytes32[] memory contentRoots,
+        uint64[] memory registeredAts,
+        string[] memory handles,
+        bool[] memory actives
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new address[](0), new bytes32[](0), new uint64[](0), new string[](0), new bool[](0));
+        uint256 cap = _nextCreatorId;
+        if (fromId_ >= cap) return (new uint256[](0), new address[](0), new bytes32[](0), new uint64[](0), new string[](0), new bool[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        creatorIds = new uint256[](len);
+        accounts = new address[](len);
+        contentRoots = new bytes32[](len);
+        registeredAts = new uint64[](len);
+        handles = new string[](len);
+        actives = new bool[](len);
+        for (uint256 i; i < len; ) {
+            uint256 cid = fromId_ + i;
+            creatorIds[i] = cid;
+            Creator storage c = _creators[cid];
+            accounts[i] = c.account;
+            contentRoots[i] = c.contentRoot;
+            registeredAts[i] = c.registeredAt;
+            handles[i] = c.handle;
+            actives[i] = c.active;
+            unchecked { ++i; }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //  Batch view: collectibles
+    // ------------------------------------------------------------------------
+
+    function getCollectiblesBatch(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory collectibleIds,
+        uint256[] memory creatorIds,
+        bytes32[] memory contentHashes,
+        uint256[] memory supplyCaps,
+        uint256[] memory totalMinteds,
+        uint64[] memory mintedAts,
+        bool[] memory frozens
