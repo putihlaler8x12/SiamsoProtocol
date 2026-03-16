@@ -1054,3 +1054,69 @@ contract SiamsoProtocol {
         uint256[] memory totalMinteds,
         uint64[] memory mintedAts,
         bool[] memory frozens
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new uint256[](0), new bytes32[](0), new uint256[](0), new uint256[](0), new uint64[](0), new bool[](0));
+        uint256 cap = _nextCollectibleId;
+        if (fromId_ >= cap) return (new uint256[](0), new uint256[](0), new bytes32[](0), new uint256[](0), new uint256[](0), new uint64[](0), new bool[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        collectibleIds = new uint256[](len);
+        creatorIds = new uint256[](len);
+        contentHashes = new bytes32[](len);
+        supplyCaps = new uint256[](len);
+        totalMinteds = new uint256[](len);
+        mintedAts = new uint64[](len);
+        frozens = new bool[](len);
+        for (uint256 i; i < len; ) {
+            uint256 colId = fromId_ + i;
+            collectibleIds[i] = colId;
+            Collectible storage c = _collectibles[colId];
+            creatorIds[i] = c.creatorId;
+            contentHashes[i] = c.contentHash;
+            supplyCaps[i] = c.supplyCap;
+            totalMinteds[i] = c.totalMinted;
+            mintedAts[i] = c.mintedAt;
+            frozens[i] = c.frozen;
+            unchecked { ++i; }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //  Content hash verification helper
+    // ------------------------------------------------------------------------
+
+    function verifyContentHash(bytes32 expected_, bytes calldata payload_) external pure returns (bool) {
+        return keccak256(payload_) == expected_;
+    }
+
+    function contentHash(bytes calldata payload_) external pure returns (bytes32) {
+        return keccak256(payload_);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Domain and typehashes (for future meta-tx or signing)
+    // ------------------------------------------------------------------------
+
+    bytes32 public constant SIAM_CREATOR_REGISTER_TYPEHASH = keccak256(
+        "RegisterCreator(bytes32 contentRoot,string handle,uint256 nonce,uint256 deadline)"
+    );
+    bytes32 public constant SIAM_LISTING_TYPEHASH = keccak256(
+        "CreateListing(uint256 collectibleId,uint256 amount,uint256 priceWei,uint64 durationSeconds,uint256 nonce,uint256 deadline)"
+    );
+    bytes32 public constant SIAM_OFFER_TYPEHASH = keccak256(
+        "PlaceOffer(uint256 collectibleId,uint256 amount,uint256 priceWei,uint64 durationSeconds,uint256 nonce,uint256 deadline)"
+    );
+
+    function domainSeparatorV2() public view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256("SiamsoProtocol"),
+                keccak256("2"),
+                block.chainid,
+                address(this)
+            )
+        );
+    }
+
+    // ------------------------------------------------------------------------
