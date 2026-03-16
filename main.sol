@@ -1252,3 +1252,69 @@ contract SiamsoProtocol {
         uint256[] memory pricesWei,
         uint64[] memory createdAt,
         uint64[] memory expiresAt,
+        bool[] memory filled
+    ) {
+        uint256 n = offerIds_.length;
+        collectibleIds = new uint256[](n);
+        bidders = new address[](n);
+        amounts = new uint256[](n);
+        pricesWei = new uint256[](n);
+        createdAt = new uint64[](n);
+        expiresAt = new uint64[](n);
+        filled = new bool[](n);
+        for (uint256 i; i < n; ) {
+            Offer storage o = _offers[offerIds_[i]];
+            collectibleIds[i] = o.collectibleId;
+            bidders[i] = o.bidder;
+            amounts[i] = o.amount;
+            pricesWei[i] = o.priceWei;
+            createdAt[i] = o.createdAt;
+            expiresAt[i] = o.expiresAt;
+            filled[i] = o.filled;
+            unchecked { ++i; }
+        }
+    }
+
+    function getCollectibleBalancesBatch(uint256 collectibleId_, address[] calldata accounts_) external view returns (uint256[] memory balances) {
+        uint256 n = accounts_.length;
+        balances = new uint256[](n);
+        for (uint256 i; i < n; ) {
+            balances[i] = _collectibleBalance[collectibleId_][accounts_[i]];
+            unchecked { ++i; }
+        }
+    }
+
+    function getCreatorIdsBatch(address[] calldata accounts_) external view returns (uint256[] memory creatorIds) {
+        uint256 n = accounts_.length;
+        creatorIds = new uint256[](n);
+        for (uint256 i; i < n; ) {
+            creatorIds[i] = _creatorByAddress[accounts_[i]];
+            unchecked { ++i; }
+        }
+    }
+
+    function getActiveListingsForCollectible(uint256 collectibleId_) external view returns (
+        uint256[] memory listingIds,
+        address[] memory sellers,
+        uint256[] memory amounts,
+        uint256[] memory pricesWei
+    ) {
+        uint256[] storage ids = _listingsByCollectible[collectibleId_];
+        uint256 len = ids.length;
+        uint256 count;
+        for (uint256 i; i < len; ) {
+            Listing storage l = _listings[ids[i]];
+            if (!l.filled && l.amount > 0 && block.timestamp <= l.expiresAt) count++;
+            unchecked { ++i; }
+        }
+        listingIds = new uint256[](count);
+        sellers = new address[](count);
+        amounts = new uint256[](count);
+        pricesWei = new uint256[](count);
+        count = 0;
+        for (uint256 j; j < len; ) {
+            Listing storage l = _listings[ids[j]];
+            if (!l.filled && l.amount > 0 && block.timestamp <= l.expiresAt) {
+                listingIds[count] = ids[j];
+                sellers[count] = l.seller;
+                amounts[count] = l.amount;
