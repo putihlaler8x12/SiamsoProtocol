@@ -1318,3 +1318,69 @@ contract SiamsoProtocol {
                 listingIds[count] = ids[j];
                 sellers[count] = l.seller;
                 amounts[count] = l.amount;
+                pricesWei[count] = l.priceWei;
+                unchecked { ++count; }
+            }
+            unchecked { ++j; }
+        }
+    }
+
+    function getActiveOffersForCollectible(uint256 collectibleId_) external view returns (
+        uint256[] memory offerIds,
+        address[] memory bidders,
+        uint256[] memory amounts,
+        uint256[] memory pricesWei
+    ) {
+        uint256[] storage ids = _offersByCollectible[collectibleId_];
+        uint256 len = ids.length;
+        uint256 count;
+        for (uint256 i; i < len; ) {
+            Offer storage o = _offers[ids[i]];
+            if (!o.filled && o.amount > 0 && block.timestamp <= o.expiresAt) count++;
+            unchecked { ++i; }
+        }
+        offerIds = new uint256[](count);
+        bidders = new address[](count);
+        amounts = new uint256[](count);
+        pricesWei = new uint256[](count);
+        count = 0;
+        for (uint256 j; j < len; ) {
+            Offer storage o = _offers[ids[j]];
+            if (!o.filled && o.amount > 0 && block.timestamp <= o.expiresAt) {
+                offerIds[count] = ids[j];
+                bidders[count] = o.bidder;
+                amounts[count] = o.amount;
+                pricesWei[count] = o.priceWei;
+                unchecked { ++count; }
+            }
+            unchecked { ++j; }
+        }
+    }
+
+    function getProtocolConfig() external view returns (
+        address curatorAddr,
+        address stewardAddr,
+        address guardianAddr,
+        address feeRecipientAddr,
+        uint256 feeBpsVal,
+        bool pausedVal,
+        uint256 nextCreatorIdVal,
+        uint256 nextCollectibleIdVal,
+        uint256 nextListingIdVal,
+        uint256 nextOfferIdVal
+    ) {
+        return (
+            _curatorCurrent,
+            _stewardCurrent,
+            _guardianCurrent,
+            _feeRecipient,
+            _feeBps,
+            _paused,
+            _nextCreatorId,
+            _nextCollectibleId,
+            _nextListingId,
+            _nextOfferId
+        );
+    }
+
+    function getCreatorFull(uint256 creatorId_) external view returns (
