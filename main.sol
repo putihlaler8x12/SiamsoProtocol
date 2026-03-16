@@ -460,3 +460,69 @@ contract SiamsoProtocol {
     function registerCreator(bytes32 contentRoot_, string calldata handle_) external whenNotPaused nonReentrant returns (uint256 creatorId) {
         if (_creatorByAddress[msg.sender] != 0) revert SIAM_AlreadyRegistered();
         if (_nextCreatorId > MAX_CREATORS) revert SIAM_InvalidCreator();
+        creatorId = _nextCreatorId++;
+        _creators[creatorId] = Creator({
+            account: msg.sender,
+            contentRoot: contentRoot_,
+            registeredAt: uint64(block.timestamp),
+            updatedAt: uint64(block.timestamp),
+            handle: handle_,
+            active: true
+        });
+        _creatorByAddress[msg.sender] = creatorId;
+        emit CreatorRegistered(creatorId, msg.sender, contentRoot_, uint64(block.timestamp), handle_);
+    }
+
+    function updateCreatorContent(uint256 creatorId_, bytes32 newContentRoot_) external {
+        Creator storage c = _creators[creatorId_];
+        if (c.account != msg.sender) revert SIAM_NotCreator();
+        if (!c.active) revert SIAM_InvalidCreator();
+        bytes32 prev = c.contentRoot;
+        c.contentRoot = newContentRoot_;
+        c.updatedAt = uint64(block.timestamp);
+        emit CreatorUpdated(creatorId_, prev, newContentRoot_, msg.sender);
+    }
+
+    function getCreator(uint256 creatorId_) external view returns (
+        address account,
+        bytes32 contentRoot,
+        uint64 registeredAt,
+        uint64 updatedAt,
+        string memory handle,
+        bool active
+    ) {
+        Creator storage c = _creators[creatorId_];
+        return (c.account, c.contentRoot, c.registeredAt, c.updatedAt, c.handle, c.active);
+    }
+
+    function getCreatorId(address account_) external view returns (uint256) {
+        return _creatorByAddress[account_];
+    }
+
+    // ------------------------------------------------------------------------
+    //  Collectibles
+    // ------------------------------------------------------------------------
+
+    function mintCollectible(
+        uint256 creatorId_,
+        bytes32 contentHash_,
+        uint256 supplyCap_,
+        address to_
+    ) external whenNotPaused nonReentrant returns (uint256 collectibleId) {
+        Creator storage cr = _creators[creatorId_];
+        if (cr.account != msg.sender || !cr.active) revert SIAM_NotCreator();
+        if (to_ == address(0)) revert SIAM_ZeroAddress();
+        if (supplyCap_ == 0) revert SIAM_InvalidAmount();
+        if (_nextCollectibleId > MAX_COLLECTIBLES_PER_CREATOR * MAX_CREATORS) revert SIAM_InvalidCollectible();
+        collectibleId = _nextCollectibleId++;
+        _collectibles[collectibleId] = Collectible({
+            creatorId: creatorId_,
+            contentHash: contentHash_,
+            supplyCap: supplyCap_,
+            totalMinted: 1,
+            mintedAt: uint64(block.timestamp),
+            frozen: false
+        });
+        _collectibleBalance[collectibleId][to_] = 1;
+        emit CollectibleMinted(creatorId_, collectibleId, to_, contentHash_, supplyCap_, uint64(block.timestamp));
+    }
