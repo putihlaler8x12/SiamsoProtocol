@@ -658,3 +658,69 @@ contract SiamsoProtocol {
         if (!sent) revert SIAM_TransferFailed();
         if (fee > 0) {
             (bool feeSent,) = _feeRecipient.call{ value: fee }("");
+            if (!feeSent) revert SIAM_TransferFailed();
+        }
+        uint256 refund = msg.value - totalWei;
+        if (refund > 0) {
+            (bool refSent,) = msg.sender.call{ value: refund }("");
+            if (!refSent) revert SIAM_TransferFailed();
+        }
+        emit ListingFilled(listingId_, msg.sender, amount_, totalWei);
+    }
+
+    function cancelListing(uint256 listingId_) external nonReentrant {
+        Listing storage l = _listings[listingId_];
+        if (l.seller != msg.sender) revert SIAM_NotOwner();
+        if (l.filled) revert SIAM_ListingFilled();
+        uint256 amt = l.amount;
+        l.amount = 0;
+        l.filled = true;
+        _collectibleBalance[l.collectibleId][msg.sender] += amt;
+        emit ListingCancelled(listingId_, msg.sender);
+    }
+
+    function getListing(uint256 listingId_) external view returns (
+        uint256 collectibleId,
+        address seller,
+        uint256 amount,
+        uint256 priceWei,
+        uint64 createdAt,
+        uint64 expiresAt,
+        bool filled
+    ) {
+        Listing storage l = _listings[listingId_];
+        return (l.collectibleId, l.seller, l.amount, l.priceWei, l.createdAt, l.expiresAt, l.filled);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Offers (buy orders)
+    // ------------------------------------------------------------------------
+
+    function placeOffer(
+        uint256 collectibleId_,
+        uint256 amount_,
+        uint256 priceWei_,
+        uint64 durationSeconds_
+    ) external payable whenNotPaused nonReentrant returns (uint256 offerId) {
+        if (amount_ == 0 || priceWei_ == 0) revert SIAM_InvalidAmount();
+        uint256 totalWei = amount_ * priceWei_;
+        if (msg.value < totalWei) revert SIAM_InvalidPrice();
+        durationSeconds_ = uint64(SiamsoMath.clamp(durationSeconds_, MIN_LISTING_DURATION, MAX_LISTING_DURATION));
+        uint64 expiresAt = uint64(block.timestamp) + durationSeconds_;
+        offerId = _nextOfferId++;
+        _offers[offerId] = Offer({
+            collectibleId: collectibleId_,
+            bidder: msg.sender,
+            amount: amount_,
+            priceWei: priceWei_,
+            createdAt: uint64(block.timestamp),
+            expiresAt: expiresAt,
+            filled: false
+        });
+        _offersByCollectible[collectibleId_].push(offerId);
+        emit OfferPlaced(offerId, collectibleId_, msg.sender, amount_, priceWei_, expiresAt);
+    }
+
+    function acceptOffer(uint256 offerId_, uint256 amount_) external whenNotPaused nonReentrant {
+        Offer storage o = _offers[offerId_];
+        if (o.bidder == address(0)) revert SIAM_InvalidOffer();
