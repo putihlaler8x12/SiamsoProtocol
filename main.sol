@@ -790,3 +790,69 @@ contract SiamsoProtocol {
 
     function feeBps() external view returns (uint256) {
         return _feeBps;
+    }
+
+    function feeRecipient() external view returns (address) {
+        return _feeRecipient;
+    }
+
+    function paused() external view returns (bool) {
+        return _paused;
+    }
+
+    function nextCreatorId() external view returns (uint256) {
+        return _nextCreatorId;
+    }
+
+    function nextCollectibleId() external view returns (uint256) {
+        return _nextCollectibleId;
+    }
+
+    function nextListingId() external view returns (uint256) {
+        return _nextListingId;
+    }
+
+    function nextOfferId() external view returns (uint256) {
+        return _nextOfferId;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Treasury (ERC20 rescue by steward)
+    // ------------------------------------------------------------------------
+
+    function withdrawTreasury(IERC20 token, address to, uint256 amount) external onlySteward nonReentrant {
+        if (to == address(0)) revert SIAM_ZeroAddress();
+        token.safeTransfer(to, amount);
+        emit TreasuryWithdrawal(address(token), to, amount);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Creator: freeze collectible (creator only)
+    // ------------------------------------------------------------------------
+
+    function freezeCollectible(uint256 collectibleId_) external {
+        Collectible storage c = _collectibles[collectibleId_];
+        if (_creators[c.creatorId].account != msg.sender) revert SIAM_NotCreator();
+        if (c.creatorId == 0) revert SIAM_InvalidCollectible();
+        c.frozen = true;
+    }
+
+    function setCollectibleRoyalty(uint256 collectibleId_, address recipient_, uint256 bps_) external {
+        Collectible storage c = _collectibles[collectibleId_];
+        if (_creators[c.creatorId].account != msg.sender) revert SIAM_NotCreator();
+        if (c.creatorId == 0) revert SIAM_InvalidCollectible();
+        if (bps_ > ROYALTY_BPS_CAP) revert SIAM_RoyaltyBpsExceeded();
+        _collectibleRoyalty[collectibleId_] = RoyaltyConfig({ recipient: recipient_, bps: bps_, set: true });
+        emit CollectibleRoyaltySet(collectibleId_, recipient_, bps_);
+    }
+
+    function getCollectibleRoyalty(uint256 collectibleId_) external view returns (address recipient, uint256 bps, bool set) {
+        RoyaltyConfig storage r = _collectibleRoyalty[collectibleId_];
+        return (r.recipient, r.bps, r.set);
+    }
+
+    function setCollectibleAllowlistEnabled(uint256 collectibleId_, bool enabled_) external {
+        Collectible storage c = _collectibles[collectibleId_];
+        if (_creators[c.creatorId].account != msg.sender) revert SIAM_NotCreator();
+        if (c.creatorId == 0) revert SIAM_InvalidCollectible();
+        _collectibleAllowlistEnabled[collectibleId_] = enabled_;
