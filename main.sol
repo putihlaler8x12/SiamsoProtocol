@@ -1186,3 +1186,69 @@ contract SiamsoProtocol {
     function currentSteward() external view returns (address) {
         return _stewardCurrent;
     }
+
+    function currentGuardian() external view returns (address) {
+        return _guardianCurrent;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Protocol stats (aggregate)
+    // ------------------------------------------------------------------------
+
+    function totalCreators() external view returns (uint256) {
+        return _nextCreatorId - 1;
+    }
+
+    function totalCollectibles() external view returns (uint256) {
+        return _nextCollectibleId - 1;
+    }
+
+    function totalListingsCreated() external view returns (uint256) {
+        return _nextListingId - 1;
+    }
+
+    function totalOffersCreated() external view returns (uint256) {
+        return _nextOfferId - 1;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Extended batch views (listings)
+    // ------------------------------------------------------------------------
+
+    function getListingsBatch(uint256[] calldata listingIds_) external view returns (
+        uint256[] memory collectibleIds,
+        address[] memory sellers,
+        uint256[] memory amounts,
+        uint256[] memory pricesWei,
+        uint64[] memory createdAt,
+        uint64[] memory expiresAt,
+        bool[] memory filled
+    ) {
+        uint256 n = listingIds_.length;
+        collectibleIds = new uint256[](n);
+        sellers = new address[](n);
+        amounts = new uint256[](n);
+        pricesWei = new uint256[](n);
+        createdAt = new uint64[](n);
+        expiresAt = new uint64[](n);
+        filled = new bool[](n);
+        for (uint256 i; i < n; ) {
+            Listing storage l = _listings[listingIds_[i]];
+            collectibleIds[i] = l.collectibleId;
+            sellers[i] = l.seller;
+            amounts[i] = l.amount;
+            pricesWei[i] = l.priceWei;
+            createdAt[i] = l.createdAt;
+            expiresAt[i] = l.expiresAt;
+            filled[i] = l.filled;
+            unchecked { ++i; }
+        }
+    }
+
+    function getOffersBatch(uint256[] calldata offerIds_) external view returns (
+        uint256[] memory collectibleIds,
+        address[] memory bidders,
+        uint256[] memory amounts,
+        uint256[] memory pricesWei,
+        uint64[] memory createdAt,
+        uint64[] memory expiresAt,
