@@ -1582,3 +1582,69 @@ contract SiamsoProtocol {
         }
     }
 
+    function getCollectibleCreatorIdsBatch(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory collectibleIds,
+        uint256[] memory creatorIds
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new uint256[](0));
+        uint256 cap = _nextCollectibleId;
+        if (fromId_ >= cap) return (new uint256[](0), new uint256[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        collectibleIds = new uint256[](len);
+        creatorIds = new uint256[](len);
+        for (uint256 i; i < len; ) {
+            uint256 colId = fromId_ + i;
+            collectibleIds[i] = colId;
+            creatorIds[i] = _collectibles[colId].creatorId;
+            unchecked { ++i; }
+        }
+    }
+
+    function getListingIdsRange(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory listingIds,
+        bool[] memory filledFlags
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new bool[](0));
+        uint256 cap = _nextListingId;
+        if (fromId_ >= cap) return (new uint256[](0), new bool[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        listingIds = new uint256[](len);
+        filledFlags = new bool[](len);
+        for (uint256 i; i < len; ) {
+            uint256 lid = fromId_ + i;
+            listingIds[i] = lid;
+            filledFlags[i] = _listings[lid].filled;
+            unchecked { ++i; }
+        }
+    }
+
+    function getOfferIdsRange(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory offerIds,
+        bool[] memory filledFlags
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new bool[](0));
+        uint256 cap = _nextOfferId;
+        if (fromId_ >= cap) return (new uint256[](0), new bool[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        offerIds = new uint256[](len);
+        filledFlags = new bool[](len);
+        for (uint256 i; i < len; ) {
+            uint256 oid = fromId_ + i;
+            offerIds[i] = oid;
+            filledFlags[i] = _offers[oid].filled;
+            unchecked { ++i; }
+        }
+    }
+
+    function getContentRoot(uint256 creatorId_) external view returns (bytes32) {
+        return _creators[creatorId_].contentRoot;
+    }
+
+    function getCreatorUpdatedAt(uint256 creatorId_) external view returns (uint64) {
+        return _creators[creatorId_].updatedAt;
+    }
+
+    function getCollectibleSupplyCap(uint256 collectibleId_) external view returns (uint256) {
