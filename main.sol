@@ -1648,3 +1648,69 @@ contract SiamsoProtocol {
     }
 
     function getCollectibleSupplyCap(uint256 collectibleId_) external view returns (uint256) {
+        return _collectibles[collectibleId_].supplyCap;
+    }
+
+    function getCollectibleTotalMinted(uint256 collectibleId_) external view returns (uint256) {
+        return _collectibles[collectibleId_].totalMinted;
+    }
+
+    function getCollectibleMintedAt(uint256 collectibleId_) external view returns (uint64) {
+        return _collectibles[collectibleId_].mintedAt;
+    }
+
+    function getCollectibleFrozen(uint256 collectibleId_) external view returns (bool) {
+        return _collectibles[collectibleId_].frozen;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Snapshot-style views for UI / analytics
+    // ------------------------------------------------------------------------
+
+    function getCreatorSnapshot(uint256 creatorId_) external view returns (
+        address account,
+        string memory handle,
+        bool active,
+        uint64 registeredAt,
+        uint64 updatedAt
+    ) {
+        Creator storage c = _creators[creatorId_];
+        return (c.account, c.handle, c.active, c.registeredAt, c.updatedAt);
+    }
+
+    function getCollectibleSnapshot(uint256 collectibleId_) external view returns (
+        uint256 creatorId,
+        uint256 supplyCap,
+        uint256 totalMinted,
+        uint64 mintedAt,
+        bool frozen
+    ) {
+        Collectible storage c = _collectibles[collectibleId_];
+        return (c.creatorId, c.supplyCap, c.totalMinted, c.mintedAt, c.frozen);
+    }
+
+    function getListingSnapshot(uint256 listingId_) external view returns (
+        uint256 collectibleId,
+        address seller,
+        uint256 amount,
+        uint256 priceWei,
+        uint64 expiresAt,
+        bool filled
+    ) {
+        Listing storage l = _listings[listingId_];
+        return (l.collectibleId, l.seller, l.amount, l.priceWei, l.expiresAt, l.filled);
+    }
+
+    function getOfferSnapshot(uint256 offerId_) external view returns (
+        uint256 collectibleId,
+        address bidder,
+        uint256 amount,
+        uint256 priceWei,
+        uint64 expiresAt,
+        bool filled
+    ) {
+        Offer storage o = _offers[offerId_];
+        return (o.collectibleId, o.bidder, o.amount, o.priceWei, o.expiresAt, o.filled);
+    }
+
+    function getMultipleCreatorSnapshots(uint256[] calldata creatorIds_) external view returns (
