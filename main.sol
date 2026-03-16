@@ -592,3 +592,69 @@ contract SiamsoProtocol {
         _fanFollows[creatorId_][msg.sender] = true;
         emit FanFollowed(creatorId_, msg.sender, uint64(block.timestamp));
     }
+
+    function unfollow(uint256 creatorId_) external {
+        _fanFollows[creatorId_][msg.sender] = false;
+        emit FanUnfollowed(creatorId_, msg.sender, uint64(block.timestamp));
+    }
+
+    function isFollower(uint256 creatorId_, address fan_) external view returns (bool) {
+        return _fanFollows[creatorId_][fan_];
+    }
+
+    // ------------------------------------------------------------------------
+    //  Listings (sell orders)
+    // ------------------------------------------------------------------------
+
+    function createListing(
+        uint256 collectibleId_,
+        uint256 amount_,
+        uint256 priceWei_,
+        uint64 durationSeconds_
+    ) external whenNotPaused nonReentrant returns (uint256 listingId) {
+        if (amount_ == 0 || priceWei_ == 0) revert SIAM_InvalidAmount();
+        uint256 bal = _collectibleBalance[collectibleId_][msg.sender];
+        if (bal < amount_) revert SIAM_InsufficientBalance();
+        durationSeconds_ = uint64(SiamsoMath.clamp(durationSeconds_, MIN_LISTING_DURATION, MAX_LISTING_DURATION));
+        uint64 expiresAt = uint64(block.timestamp) + durationSeconds_;
+        listingId = _nextListingId++;
+        _listings[listingId] = Listing({
+            collectibleId: collectibleId_,
+            seller: msg.sender,
+            amount: amount_,
+            priceWei: priceWei_,
+            createdAt: uint64(block.timestamp),
+            expiresAt: expiresAt,
+            filled: false
+        });
+        _listingsByCollectible[collectibleId_].push(listingId);
+        _collectibleBalance[collectibleId_][msg.sender] -= amount_;
+        emit ListingCreated(listingId, collectibleId_, msg.sender, amount_, priceWei_, expiresAt);
+    }
+
+    function fillListing(uint256 listingId_, uint256 amount_) external payable whenNotPaused nonReentrant {
+        Listing storage l = _listings[listingId_];
+        if (l.seller == address(0)) revert SIAM_InvalidListing();
+        if (l.filled) revert SIAM_ListingFilled();
+        if (block.timestamp > l.expiresAt) revert SIAM_ListingExpired();
+        if (amount_ == 0 || amount_ > l.amount) revert SIAM_InvalidAmount();
+        uint256 totalWei = l.priceWei * amount_;
+        if (msg.value < totalWei) revert SIAM_InvalidPrice();
+        uint256 fee = SiamsoMath.mulPct(totalWei, _feeBps);
+        uint256 toSeller = totalWei - fee;
+        RoyaltyConfig storage roy = _collectibleRoyalty[l.collectibleId];
+        if (roy.set && roy.bps > 0 && roy.recipient != address(0)) {
+            uint256 royaltyWei = SiamsoMath.mulPct(totalWei, roy.bps);
+            toSeller = SiamsoMath.saturatingSub(toSeller, royaltyWei);
+            if (royaltyWei > 0) {
+                (bool roySent,) = roy.recipient.call{ value: royaltyWei }("");
+                if (!roySent) revert SIAM_TransferFailed();
+            }
+        }
+        l.amount -= amount_;
+        if (l.amount == 0) l.filled = true;
+        _collectibleBalance[l.collectibleId][msg.sender] += amount_;
+        (bool sent,) = l.seller.call{ value: toSeller }("");
+        if (!sent) revert SIAM_TransferFailed();
+        if (fee > 0) {
+            (bool feeSent,) = _feeRecipient.call{ value: fee }("");
