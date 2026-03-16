@@ -394,3 +394,69 @@ contract SiamsoProtocol {
         if (_reentrancyGuard == 1) revert SIAM_Reentrancy();
         _reentrancyGuard = 1;
         _;
+        _reentrancyGuard = 0;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Admin: role updates
+    // ------------------------------------------------------------------------
+
+    function setCurator(address newCurator) external onlyCurator {
+        if (newCurator == address(0)) revert SIAM_ZeroAddress();
+        if (newCurator == _curatorCurrent) revert SIAM_NoChange();
+        address prev = _curatorCurrent;
+        _curatorCurrent = newCurator;
+        emit CuratorSet(prev, newCurator);
+    }
+
+    function setSteward(address newSteward) external onlyCurator {
+        if (newSteward == address(0)) revert SIAM_ZeroAddress();
+        if (newSteward == _stewardCurrent) revert SIAM_NoChange();
+        address prev = _stewardCurrent;
+        _stewardCurrent = newSteward;
+        emit StewardSet(prev, newSteward);
+    }
+
+    function setGuardian(address newGuardian) external onlyCurator {
+        if (newGuardian == address(0)) revert SIAM_ZeroAddress();
+        if (newGuardian == _guardianCurrent) revert SIAM_NoChange();
+        address prev = _guardianCurrent;
+        _guardianCurrent = newGuardian;
+        emit GuardianSet(prev, newGuardian);
+    }
+
+    function setFeeBps(uint256 newBps) external onlySteward {
+        if (newBps > BPS_CAP) revert SIAM_InvalidBps();
+        if (newBps == _feeBps) revert SIAM_NoChange();
+        uint256 prev = _feeBps;
+        _feeBps = newBps;
+        emit FeeBpsUpdated(prev, newBps);
+    }
+
+    function setFeeRecipient(address newRecipient) external onlySteward {
+        if (newRecipient == address(0)) revert SIAM_ZeroAddress();
+        if (newRecipient == _feeRecipient) revert SIAM_NoChange();
+        address prev = _feeRecipient;
+        _feeRecipient = newRecipient;
+        emit FeeRecipientUpdated(prev, newRecipient);
+    }
+
+    function pause() external onlyGuardian {
+        if (_paused) revert SIAM_NoChange();
+        _paused = true;
+        emit ProtocolPaused(msg.sender);
+    }
+
+    function unpause() external onlyCurator {
+        if (!_paused) revert SIAM_NoChange();
+        _paused = false;
+        emit ProtocolUnpaused(msg.sender);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Creator registration
+    // ------------------------------------------------------------------------
+
+    function registerCreator(bytes32 contentRoot_, string calldata handle_) external whenNotPaused nonReentrant returns (uint256 creatorId) {
+        if (_creatorByAddress[msg.sender] != 0) revert SIAM_AlreadyRegistered();
+        if (_nextCreatorId > MAX_CREATORS) revert SIAM_InvalidCreator();
