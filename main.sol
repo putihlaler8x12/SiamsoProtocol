@@ -724,3 +724,69 @@ contract SiamsoProtocol {
     function acceptOffer(uint256 offerId_, uint256 amount_) external whenNotPaused nonReentrant {
         Offer storage o = _offers[offerId_];
         if (o.bidder == address(0)) revert SIAM_InvalidOffer();
+        if (o.filled) revert SIAM_OfferFilled();
+        if (block.timestamp > o.expiresAt) revert SIAM_OfferExpired();
+        if (amount_ == 0 || amount_ > o.amount) revert SIAM_InvalidAmount();
+        uint256 bal = _collectibleBalance[o.collectibleId][msg.sender];
+        if (bal < amount_) revert SIAM_InsufficientBalance();
+        uint256 totalWei = o.priceWei * amount_;
+        uint256 fee = SiamsoMath.mulPct(totalWei, _feeBps);
+        uint256 toSeller = totalWei - fee;
+        RoyaltyConfig storage roy = _collectibleRoyalty[o.collectibleId];
+        if (roy.set && roy.bps > 0 && roy.recipient != address(0)) {
+            uint256 royaltyWei = SiamsoMath.mulPct(totalWei, roy.bps);
+            toSeller = SiamsoMath.saturatingSub(toSeller, royaltyWei);
+            if (royaltyWei > 0) {
+                (bool roySent,) = roy.recipient.call{ value: royaltyWei }("");
+                if (!roySent) revert SIAM_TransferFailed();
+            }
+        }
+        o.amount -= amount_;
+        if (o.amount == 0) o.filled = true;
+        _collectibleBalance[o.collectibleId][msg.sender] -= amount_;
+        _collectibleBalance[o.collectibleId][o.bidder] += amount_;
+        (bool sent,) = msg.sender.call{ value: toSeller }("");
+        if (!sent) revert SIAM_TransferFailed();
+        if (fee > 0) {
+            (bool feeSent,) = _feeRecipient.call{ value: fee }("");
+            if (!feeSent) revert SIAM_TransferFailed();
+        }
+        uint256 refundWei = o.amount * o.priceWei;
+        if (refundWei > 0) {
+            (bool refSent,) = o.bidder.call{ value: refundWei }("");
+            if (!refSent) revert SIAM_TransferFailed();
+        }
+        emit OfferAccepted(offerId_, msg.sender, amount_, totalWei);
+    }
+
+    function cancelOffer(uint256 offerId_) external nonReentrant {
+        Offer storage o = _offers[offerId_];
+        if (o.bidder != msg.sender) revert SIAM_NotOwner();
+        if (o.filled) revert SIAM_OfferFilled();
+        uint256 refund = o.amount * o.priceWei;
+        o.amount = 0;
+        o.filled = true;
+        (bool sent,) = msg.sender.call{ value: refund }("");
+        if (!sent) revert SIAM_TransferFailed();
+        emit OfferCancelled(offerId_, msg.sender);
+    }
+
+    function getOffer(uint256 offerId_) external view returns (
+        uint256 collectibleId,
+        address bidder,
+        uint256 amount,
+        uint256 priceWei,
+        uint64 createdAt,
+        uint64 expiresAt,
+        bool filled
+    ) {
+        Offer storage o = _offers[offerId_];
+        return (o.collectibleId, o.bidder, o.amount, o.priceWei, o.createdAt, o.expiresAt, o.filled);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Fee and config view
+    // ------------------------------------------------------------------------
+
+    function feeBps() external view returns (uint256) {
+        return _feeBps;
