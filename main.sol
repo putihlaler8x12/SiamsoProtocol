@@ -526,3 +526,69 @@ contract SiamsoProtocol {
         _collectibleBalance[collectibleId][to_] = 1;
         emit CollectibleMinted(creatorId_, collectibleId, to_, contentHash_, supplyCap_, uint64(block.timestamp));
     }
+
+    function mintCollectibleBatch(
+        uint256 creatorId_,
+        bytes32 contentHash_,
+        uint256 supplyCap_,
+        address[] calldata recipients_
+    ) external whenNotPaused nonReentrant returns (uint256 collectibleId) {
+        Creator storage cr = _creators[creatorId_];
+        if (cr.account != msg.sender || !cr.active) revert SIAM_NotCreator();
+        uint256 n = recipients_.length;
+        if (n == 0 || supplyCap_ < n) revert SIAM_InvalidAmount();
+        collectibleId = _nextCollectibleId++;
+        _collectibles[collectibleId] = Collectible({
+            creatorId: creatorId_,
+            contentHash: contentHash_,
+            supplyCap: supplyCap_,
+            totalMinted: n,
+            mintedAt: uint64(block.timestamp),
+            frozen: false
+        });
+        for (uint256 i; i < n; ) {
+            address to = recipients_[i];
+            if (to == address(0)) revert SIAM_ZeroAddress();
+            _collectibleBalance[collectibleId][to]++;
+            unchecked { ++i; }
+        }
+        emit CollectibleMinted(creatorId_, collectibleId, recipients_[0], contentHash_, supplyCap_, uint64(block.timestamp));
+    }
+
+    function transferCollectible(uint256 collectibleId_, address to_, uint256 amount_) external whenNotPaused nonReentrant {
+        if (to_ == address(0)) revert SIAM_ZeroAddress();
+        if (amount_ == 0) revert SIAM_InvalidAmount();
+        uint256 bal = _collectibleBalance[collectibleId_][msg.sender];
+        if (bal < amount_) revert SIAM_InsufficientBalance();
+        Collectible storage col = _collectibles[collectibleId_];
+        if (col.creatorId == 0) revert SIAM_InvalidCollectible();
+        _collectibleBalance[collectibleId_][msg.sender] = bal - amount_;
+        _collectibleBalance[collectibleId_][to_] += amount_;
+        emit CollectibleTransfer(collectibleId_, msg.sender, to_, amount_);
+    }
+
+    function balanceOfCollectible(uint256 collectibleId_, address account_) external view returns (uint256) {
+        return _collectibleBalance[collectibleId_][account_];
+    }
+
+    function getCollectible(uint256 collectibleId_) external view returns (
+        uint256 creatorId,
+        bytes32 contentHash,
+        uint256 supplyCap,
+        uint256 totalMinted,
+        uint64 mintedAt,
+        bool frozen
+    ) {
+        Collectible storage c = _collectibles[collectibleId_];
+        return (c.creatorId, c.contentHash, c.supplyCap, c.totalMinted, c.mintedAt, c.frozen);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Fan follow
+    // ------------------------------------------------------------------------
+
+    function follow(uint256 creatorId_) external whenNotPaused {
+        if (_creators[creatorId_].account == address(0)) revert SIAM_InvalidCreator();
+        _fanFollows[creatorId_][msg.sender] = true;
+        emit FanFollowed(creatorId_, msg.sender, uint64(block.timestamp));
+    }
