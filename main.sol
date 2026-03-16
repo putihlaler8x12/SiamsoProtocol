@@ -1780,3 +1780,46 @@ contract SiamsoProtocol {
     function getListingExpiresAt(uint256 listingId_) external view returns (uint64) {
         return _listings[listingId_].expiresAt;
     }
+
+    function getOfferAmount(uint256 offerId_) external view returns (uint256) {
+        return _offers[offerId_].amount;
+    }
+
+    function getOfferPriceWei(uint256 offerId_) external view returns (uint256) {
+        return _offers[offerId_].priceWei;
+    }
+
+    function getOfferExpiresAt(uint256 offerId_) external view returns (uint64) {
+        return _offers[offerId_].expiresAt;
+    }
+
+    function getCreatorContentRoot(uint256 creatorId_) external view returns (bytes32) {
+        return _creators[creatorId_].contentRoot;
+    }
+
+    function getCollectibleContentHash(uint256 collectibleId_) external view returns (bytes32) {
+        return _collectibles[collectibleId_].contentHash;
+    }
+
+    function hasRoyalty(uint256 collectibleId_) external view returns (bool) {
+        return _collectibleRoyalty[collectibleId_].set;
+    }
+
+    function getRoyaltyRecipient(uint256 collectibleId_) external view returns (address) {
+        return _collectibleRoyalty[collectibleId_].recipient;
+    }
+
+    function getRoyaltyBps(uint256 collectibleId_) external view returns (uint256) {
+        return _collectibleRoyalty[collectibleId_].bps;
+    }
+
+    function protocolVersion() external pure returns (uint8) {
+        return SIAM_REV;
+    }
+
+    function domainLabel() external pure returns (bytes32) {
+        return SIAM_DOMAIN;
+    }
+
+    receive() external payable {}
+}
