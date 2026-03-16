@@ -1120,3 +1120,69 @@ contract SiamsoProtocol {
     }
 
     // ------------------------------------------------------------------------
+    //  Creator stats (aggregate counts; no on-chain follower count storage)
+    // ------------------------------------------------------------------------
+
+    function getCreatorCollectibleCount(uint256 creatorId_) external view returns (uint256 count) {
+        uint256 colEnd = _nextCollectibleId;
+        for (uint256 i = 1; i < colEnd; ) {
+            if (_collectibles[i].creatorId == creatorId_) count++;
+            unchecked { ++i; }
+        }
+    }
+
+    function getCollectibleIdsByCreator(uint256 creatorId_, uint256 maxResults_) external view returns (uint256[] memory ids) {
+        uint256 colEnd = _nextCollectibleId;
+        uint256[] memory tmp = new uint256[](maxResults_);
+        uint256 k;
+        for (uint256 i = 1; i < colEnd && k < maxResults_; ) {
+            if (_collectibles[i].creatorId == creatorId_) {
+                tmp[k] = i;
+                unchecked { ++k; }
+            }
+            unchecked { ++i; }
+        }
+        ids = new uint256[](k);
+        for (uint256 j; j < k; ) {
+            ids[j] = tmp[j];
+            unchecked { ++j; }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //  Listing / offer validity checks (view)
+    // ------------------------------------------------------------------------
+
+    function isListingActive(uint256 listingId_) external view returns (bool) {
+        Listing storage l = _listings[listingId_];
+        return l.seller != address(0) && !l.filled && block.timestamp <= l.expiresAt && l.amount > 0;
+    }
+
+    function isOfferActive(uint256 offerId_) external view returns (bool) {
+        Offer storage o = _offers[offerId_];
+        return o.bidder != address(0) && !o.filled && block.timestamp <= o.expiresAt && o.amount > 0;
+    }
+
+    function computeListingTotalWei(uint256 listingId_, uint256 amount_) external view returns (uint256 totalWei, uint256 feeWei) {
+        Listing storage l = _listings[listingId_];
+        totalWei = l.priceWei * amount_;
+        feeWei = SiamsoMath.mulPct(totalWei, _feeBps);
+    }
+
+    function computeOfferTotalWei(uint256 offerId_, uint256 amount_) external view returns (uint256 totalWei, uint256 feeWei) {
+        Offer storage o = _offers[offerId_];
+        totalWei = o.priceWei * amount_;
+        feeWei = SiamsoMath.mulPct(totalWei, _feeBps);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Role view (current assignable roles)
+    // ------------------------------------------------------------------------
+
+    function currentCurator() external view returns (address) {
+        return _curatorCurrent;
+    }
+
+    function currentSteward() external view returns (address) {
+        return _stewardCurrent;
+    }
