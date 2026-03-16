@@ -922,3 +922,69 @@ contract SiamsoProtocol {
         uint256 limit_
     ) external view returns (
         uint256[] memory listingIds,
+        address[] memory sellers,
+        uint256[] memory amounts,
+        uint256[] memory pricesWei,
+        uint64[] memory expiresAt,
+        bool[] memory filled
+    ) {
+        uint256[] storage ids = _listingsByCollectible[collectibleId_];
+        uint256 n = ids.length;
+        if (offset_ >= n) {
+            return (new uint256[](0), new address[](0), new uint256[](0), new uint256[](0), new uint64[](0), new bool[](0));
+        }
+        uint256 end = offset_ + limit_;
+        if (end > n) end = n;
+        uint256 len = end - offset_;
+        listingIds = new uint256[](len);
+        sellers = new address[](len);
+        amounts = new uint256[](len);
+        pricesWei = new uint256[](len);
+        expiresAt = new uint64[](len);
+        filled = new bool[](len);
+        for (uint256 i; i < len; ) {
+            uint256 lid = ids[offset_ + i];
+            listingIds[i] = lid;
+            Listing storage l = _listings[lid];
+            sellers[i] = l.seller;
+            amounts[i] = l.amount;
+            pricesWei[i] = l.priceWei;
+            expiresAt[i] = l.expiresAt;
+            filled[i] = l.filled;
+            unchecked { ++i; }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //  Offers by collectible (enumeration)
+    // ------------------------------------------------------------------------
+
+    function getOfferIdsByCollectible(uint256 collectibleId_) external view returns (uint256[] memory) {
+        return _offersByCollectible[collectibleId_];
+    }
+
+    function getOfferCountByCollectible(uint256 collectibleId_) external view returns (uint256) {
+        return _offersByCollectible[collectibleId_].length;
+    }
+
+    function getOffersByCollectiblePaginated(
+        uint256 collectibleId_,
+        uint256 offset_,
+        uint256 limit_
+    ) external view returns (
+        uint256[] memory offerIds,
+        address[] memory bidders,
+        uint256[] memory amounts,
+        uint256[] memory pricesWei,
+        uint64[] memory expiresAt,
+        bool[] memory filled
+    ) {
+        uint256[] storage ids = _offersByCollectible[collectibleId_];
+        uint256 n = ids.length;
+        if (offset_ >= n) {
+            return (new uint256[](0), new address[](0), new uint256[](0), new uint256[](0), new uint64[](0), new bool[](0));
+        }
+        uint256 end = offset_ + limit_;
+        if (end > n) end = n;
+        uint256 len = end - offset_;
+        offerIds = new uint256[](len);
