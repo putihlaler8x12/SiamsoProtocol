@@ -1450,3 +1450,69 @@ contract SiamsoProtocol {
 
     function getOfferCollectibleId(uint256 offerId_) external view returns (uint256) {
         return _offers[offerId_].collectibleId;
+    }
+
+    function creatorExists(uint256 creatorId_) external view returns (bool) {
+        return _creators[creatorId_].account != address(0);
+    }
+
+    function collectibleExists(uint256 collectibleId_) external view returns (bool) {
+        return _collectibles[collectibleId_].creatorId != 0;
+    }
+
+    function listingExists(uint256 listingId_) external view returns (bool) {
+        return _listings[listingId_].seller != address(0);
+    }
+
+    function offerExists(uint256 offerId_) external view returns (bool) {
+        return _offers[offerId_].bidder != address(0);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Merkle verification views (for off-chain proofs)
+    // ------------------------------------------------------------------------
+
+    function verifyCreatorInSet(address account_, bytes32 root_, bytes32[] calldata proof_) external pure returns (bool) {
+        return SiamsoMerkle.verifyProof(SiamsoMerkle.leafForAddress(account_), root_, proof_);
+    }
+
+    function verifyCreatorIdInSet(uint256 creatorId_, bytes32 root_, bytes32[] calldata proof_) external pure returns (bool) {
+        return SiamsoMerkle.verifyProof(SiamsoMerkle.leafForCreatorId(creatorId_), root_, proof_);
+    }
+
+    function leafAddress(address account_) external pure returns (bytes32) {
+        return SiamsoMerkle.leafForAddress(account_);
+    }
+
+    function leafCreatorId(uint256 creatorId_) external pure returns (bytes32) {
+        return SiamsoMerkle.leafForCreatorId(creatorId_);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Additional config and constants exposure
+    // ------------------------------------------------------------------------
+
+    function getConstants() external pure returns (
+        uint8 rev,
+        uint256 maxCreators,
+        uint256 maxCollectiblesPerCreator,
+        uint256 bpsCap,
+        uint256 royaltyBpsCap,
+        uint256 minListingDuration,
+        uint256 maxListingDuration
+    ) {
+        return (
+            SIAM_REV,
+            MAX_CREATORS,
+            MAX_COLLECTIBLES_PER_CREATOR,
+            BPS_CAP,
+            ROYALTY_BPS_CAP,
+            MIN_LISTING_DURATION,
+            MAX_LISTING_DURATION
+        );
+    }
+
+    function getImmutableAddresses() external view returns (
+        address curatorImmutable,
+        address stewardImmutable,
+        address guardianImmutable,
