@@ -1714,3 +1714,69 @@ contract SiamsoProtocol {
     }
 
     function getMultipleCreatorSnapshots(uint256[] calldata creatorIds_) external view returns (
+        address[] memory accounts,
+        string[] memory handles,
+        bool[] memory actives,
+        uint64[] memory registeredAts
+    ) {
+        uint256 n = creatorIds_.length;
+        accounts = new address[](n);
+        handles = new string[](n);
+        actives = new bool[](n);
+        registeredAts = new uint64[](n);
+        for (uint256 i; i < n; ) {
+            Creator storage c = _creators[creatorIds_[i]];
+            accounts[i] = c.account;
+            handles[i] = c.handle;
+            actives[i] = c.active;
+            registeredAts[i] = c.registeredAt;
+            unchecked { ++i; }
+        }
+    }
+
+    function getMultipleCollectibleSnapshots(uint256[] calldata collectibleIds_) external view returns (
+        uint256[] memory creatorIds,
+        uint256[] memory supplyCaps,
+        uint256[] memory totalMinteds,
+        bool[] memory frozens
+    ) {
+        uint256 n = collectibleIds_.length;
+        creatorIds = new uint256[](n);
+        supplyCaps = new uint256[](n);
+        totalMinteds = new uint256[](n);
+        frozens = new bool[](n);
+        for (uint256 i; i < n; ) {
+            Collectible storage c = _collectibles[collectibleIds_[i]];
+            creatorIds[i] = c.creatorId;
+            supplyCaps[i] = c.supplyCap;
+            totalMinteds[i] = c.totalMinted;
+            frozens[i] = c.frozen;
+            unchecked { ++i; }
+        }
+    }
+
+    function computeRoyaltyForAmount(uint256 amountWei_, uint256 royaltyBps_) external pure returns (uint256 royaltyWei) {
+        return SiamsoMath.mulPct(amountWei_, royaltyBps_);
+    }
+
+    function computeSellerProceeds(uint256 amountWei_, uint256 feeBps_, uint256 royaltyBps_) external pure returns (
+        uint256 feeWei,
+        uint256 royaltyWei,
+        uint256 toSeller
+    ) {
+        feeWei = SiamsoMath.mulPct(amountWei_, feeBps_);
+        royaltyWei = SiamsoMath.mulPct(amountWei_, royaltyBps_);
+        toSeller = amountWei_ - feeWei - royaltyWei;
+    }
+
+    function getListingAmount(uint256 listingId_) external view returns (uint256) {
+        return _listings[listingId_].amount;
+    }
+
+    function getListingPriceWei(uint256 listingId_) external view returns (uint256) {
+        return _listings[listingId_].priceWei;
+    }
+
+    function getListingExpiresAt(uint256 listingId_) external view returns (uint64) {
+        return _listings[listingId_].expiresAt;
+    }
