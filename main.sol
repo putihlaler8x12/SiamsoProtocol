@@ -1516,3 +1516,69 @@ contract SiamsoProtocol {
         address curatorImmutable,
         address stewardImmutable,
         address guardianImmutable,
+        address feeRecipientImmutable
+    ) {
+        return (curator, steward, guardian, feeRecipientInit);
+    }
+
+    // ------------------------------------------------------------------------
+    //  Paginated creator list (by id range)
+    // ------------------------------------------------------------------------
+
+    function getCreatorHandlesBatch(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory creatorIds,
+        string[] memory handles
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new string[](0));
+        uint256 cap = _nextCreatorId;
+        if (fromId_ >= cap) return (new uint256[](0), new string[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        creatorIds = new uint256[](len);
+        handles = new string[](len);
+        for (uint256 i; i < len; ) {
+            uint256 cid = fromId_ + i;
+            creatorIds[i] = cid;
+            handles[i] = _creators[cid].handle;
+            unchecked { ++i; }
+        }
+    }
+
+    function getCreatorAccountsBatch(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory creatorIds,
+        address[] memory accounts
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new address[](0));
+        uint256 cap = _nextCreatorId;
+        if (fromId_ >= cap) return (new uint256[](0), new address[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        creatorIds = new uint256[](len);
+        accounts = new address[](len);
+        for (uint256 i; i < len; ) {
+            uint256 cid = fromId_ + i;
+            creatorIds[i] = cid;
+            accounts[i] = _creators[cid].account;
+            unchecked { ++i; }
+        }
+    }
+
+    function getCollectibleContentHashesBatch(uint256 fromId_, uint256 toId_) external view returns (
+        uint256[] memory collectibleIds,
+        bytes32[] memory contentHashes
+    ) {
+        if (fromId_ > toId_) return (new uint256[](0), new bytes32[](0));
+        uint256 cap = _nextCollectibleId;
+        if (fromId_ >= cap) return (new uint256[](0), new bytes32[](0));
+        if (toId_ >= cap) toId_ = cap - 1;
+        uint256 len = toId_ - fromId_ + 1;
+        collectibleIds = new uint256[](len);
+        contentHashes = new bytes32[](len);
+        for (uint256 i; i < len; ) {
+            uint256 colId = fromId_ + i;
+            collectibleIds[i] = colId;
+            contentHashes[i] = _collectibles[colId].contentHash;
+            unchecked { ++i; }
+        }
+    }
+
