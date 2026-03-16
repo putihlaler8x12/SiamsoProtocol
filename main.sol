@@ -1384,3 +1384,69 @@ contract SiamsoProtocol {
     }
 
     function getCreatorFull(uint256 creatorId_) external view returns (
+        address account,
+        bytes32 contentRoot,
+        uint64 registeredAt,
+        uint64 updatedAt,
+        string memory handle,
+        bool active,
+        uint256 collectibleCount
+    ) {
+        Creator storage c = _creators[creatorId_];
+        collectibleCount = 0;
+        uint256 colEnd = _nextCollectibleId;
+        for (uint256 i = 1; i < colEnd; ) {
+            if (_collectibles[i].creatorId == creatorId_) collectibleCount++;
+            unchecked { ++i; }
+        }
+        return (c.account, c.contentRoot, c.registeredAt, c.updatedAt, c.handle, c.active, collectibleCount);
+    }
+
+    function getCollectibleFull(uint256 collectibleId_) external view returns (
+        uint256 creatorId,
+        bytes32 contentHash,
+        uint256 supplyCap,
+        uint256 totalMinted,
+        uint64 mintedAt,
+        bool frozen,
+        address royaltyRecipient,
+        uint256 royaltyBps,
+        bool allowlistEnabled
+    ) {
+        Collectible storage c = _collectibles[collectibleId_];
+        RoyaltyConfig storage r = _collectibleRoyalty[collectibleId_];
+        return (
+            c.creatorId,
+            c.contentHash,
+            c.supplyCap,
+            c.totalMinted,
+            c.mintedAt,
+            c.frozen,
+            r.recipient,
+            r.bps,
+            _collectibleAllowlistEnabled[collectibleId_]
+        );
+    }
+
+    function computeFeeForAmount(uint256 amountWei_) external view returns (uint256 feeWei) {
+        return SiamsoMath.mulPct(amountWei_, _feeBps);
+    }
+
+    function computeNetForAmount(uint256 amountWei_) external view returns (uint256 netWei) {
+        return amountWei_ - SiamsoMath.mulPct(amountWei_, _feeBps);
+    }
+
+    function getListingSeller(uint256 listingId_) external view returns (address) {
+        return _listings[listingId_].seller;
+    }
+
+    function getListingCollectibleId(uint256 listingId_) external view returns (uint256) {
+        return _listings[listingId_].collectibleId;
+    }
+
+    function getOfferBidder(uint256 offerId_) external view returns (address) {
+        return _offers[offerId_].bidder;
+    }
+
+    function getOfferCollectibleId(uint256 offerId_) external view returns (uint256) {
+        return _offers[offerId_].collectibleId;
