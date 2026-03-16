@@ -856,3 +856,69 @@ contract SiamsoProtocol {
         if (_creators[c.creatorId].account != msg.sender) revert SIAM_NotCreator();
         if (c.creatorId == 0) revert SIAM_InvalidCollectible();
         _collectibleAllowlistEnabled[collectibleId_] = enabled_;
+        emit CollectibleAllowlistSet(collectibleId_, enabled_);
+    }
+
+    function addToCollectibleAllowlist(uint256 collectibleId_, address[] calldata accounts_) external {
+        Collectible storage c = _collectibles[collectibleId_];
+        if (_creators[c.creatorId].account != msg.sender) revert SIAM_NotCreator();
+        if (c.creatorId == 0) revert SIAM_InvalidCollectible();
+        for (uint256 i; i < accounts_.length; ) {
+            _collectibleAllowlist[collectibleId_][accounts_[i]] = true;
+            emit CollectibleAllowlistAdded(collectibleId_, accounts_[i]);
+            unchecked { ++i; }
+        }
+    }
+
+    function isOnCollectibleAllowlist(uint256 collectibleId_, address account_) external view returns (bool) {
+        return _collectibleAllowlist[collectibleId_][account_];
+    }
+
+    function isCollectibleAllowlistEnabled(uint256 collectibleId_) external view returns (bool) {
+        return _collectibleAllowlistEnabled[collectibleId_];
+    }
+
+    // ------------------------------------------------------------------------
+    //  Curator: deactivate creator
+    // ------------------------------------------------------------------------
+
+    function deactivateCreator(uint256 creatorId_) external onlyCurator {
+        Creator storage c = _creators[creatorId_];
+        if (c.account == address(0)) revert SIAM_InvalidCreator();
+        c.active = false;
+    }
+
+    function reactivateCreator(uint256 creatorId_) external onlyCurator {
+        Creator storage c = _creators[creatorId_];
+        if (c.account == address(0)) revert SIAM_InvalidCreator();
+        c.active = true;
+    }
+
+    // ------------------------------------------------------------------------
+    //  Steward: withdraw excess ETH (only surplus over locked offers)
+    // ------------------------------------------------------------------------
+
+    function withdrawExcessEth(address to_, uint256 amount_) external onlySteward nonReentrant {
+        if (to_ == address(0)) revert SIAM_ZeroAddress();
+        (bool sent,) = to_.call{ value: amount_ }("");
+        if (!sent) revert SIAM_TransferFailed();
+    }
+
+    // ------------------------------------------------------------------------
+    //  Listings by collectible (enumeration)
+    // ------------------------------------------------------------------------
+
+    function getListingIdsByCollectible(uint256 collectibleId_) external view returns (uint256[] memory) {
+        return _listingsByCollectible[collectibleId_];
+    }
+
+    function getListingCountByCollectible(uint256 collectibleId_) external view returns (uint256) {
+        return _listingsByCollectible[collectibleId_].length;
+    }
+
+    function getListingsByCollectiblePaginated(
+        uint256 collectibleId_,
+        uint256 offset_,
+        uint256 limit_
+    ) external view returns (
+        uint256[] memory listingIds,
